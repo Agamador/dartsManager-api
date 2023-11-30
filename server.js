@@ -1,23 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const auth = require('./auth.js');
+const users = require('./users.js');
 const app = express();
 
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.json());
 
-app.get('/api/users', async (req, res) => {
-    let users = await auth.consultaEjemplo();
-    res.json(users);
-    res.end();
-});
-app.post('/api/users', (req, res) => {
-    const newUser = req.body;
-    // Your code to save the new user to the database or any other source
-    // Send a response indicating success or failure
-    res.json({ message: 'User created successfully' });
-});
+//users routes
+app.post('/api/register', users.registerUser);
+app.post('/api/login', users.login);
+app.post('/api/user-edit', auth.verifyToken, users.modifyProfile);
+
+//
 
 
 const port = 3000;
