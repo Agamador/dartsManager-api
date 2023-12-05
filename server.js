@@ -31,8 +31,12 @@ app.post('/api/games/new', games.addGame);
 io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);
     socket.on('disconnect', gamesEvents.disconnect);
-    socket.on('joinRoom', gamesEvents.joinRoom);
+    socket.on('joinRoom', (data) => gamesEvents.joinRoom(io, socket, data));
+    socket.on('startGame', (data) => gamesEvents.startGame(io, socket, data));
+    socket.on('addUserToLobby', (data) => gamesEvents.addUserToLobby(io, data));
 });
+
+
 const port = 3000;
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
