@@ -32,8 +32,9 @@ io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);
     socket.on('disconnect', gamesEvents.disconnect);
     socket.on('joinRoom', (data) => gamesEvents.joinRoom(io, socket, data));
-    socket.on('startGame', (data) => gamesEvents.startGame(io, socket, data));
+    socket.on('startGame', (data) => gamesEvents.startGame(io, data));
     socket.on('addUserToLobby', (data) => gamesEvents.addUserToLobby(io, data));
+    socket.on('submitScore', (data) => gamesEvents.submitScore(io, data));
 });
 
 
