@@ -25,11 +25,10 @@ async function registerUser(req, res) {
         if (!token) {
             throw new Error('Error creating token');
         }
-        res.status(200).send({ token });
+        res.status(200).send({ token, user: newUser });
 
     } catch (error) {
         res.status(500).send({ message: error.message })
-        throw error;
     }
 }
 
@@ -53,10 +52,9 @@ async function login(req, res) {
 
         const token = createToken(user[0]);
 
-        res.status(200).send({ token });
+        res.status(200).send({ token, user: { id: user[0].id, name: user[0].name } });
     } catch (error) {
         res.status(500).send({ message: error.message });
-        throw error;
     }
 }
 
