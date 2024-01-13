@@ -11,10 +11,14 @@ function disconnect() {
 function joinRoom(io, socket, data) {
     socket.join(data.room);
     console.log('joined room: ', data)
-    if (!rooms[data.room]) rooms[data.room] = { scores: { [data.user]: { id: data?.userId, score: [], totalScore: 0, position: 1 } } }
+    if (!rooms[data.room]) rooms[data.room] = { scores: { [data.user]: { id: data?.userId, score: [], totalScore: 0, position: 1 } }, turn: 1, gameStarted: false }
     else if (!rooms[data.room].scores[data.user]) rooms[data.room].scores[data.user] = { id: data?.userId, score: [], totalScore: 0, position: Object.keys(rooms[data.room].scores).length + 1 };
     console.log(rooms[data.room])
     io.in(data.room).emit('userJoined', rooms[data.room]);
+}
+
+function spectateRoom(io, socket, data) {
+    socket.join(data.room);
 }
 
 function leaveRoom(io, socket, data) {
@@ -29,10 +33,17 @@ function leaveRoom(io, socket, data) {
     if (Object.keys(rooms[data.room].scores).length != 0)
         io.to(data.room).emit('userLeft', rooms[data.room]);
     else {
+        //FUTURE: saveGame for players with id to start again later
         delete rooms[data.room];
         socket.leave(data.room);
     }
     console.log('deleted player in: ', rooms[data.room])
+}
+
+function hasGameStarted(req, res) {
+    let gameId = req.params.id;
+    if (!rooms[gameId]) res.status(200).send({ started: false });
+    else res.status(200).send({ started: rooms[gameId].gameStarted });
 }
 
 function startGame(io, data) {
@@ -41,9 +52,10 @@ function startGame(io, data) {
     rooms[data.room].gamemode = gameMode;
     if (gameMode === '301' || gameMode === '501') {
         for (let player of Object.keys(rooms[data.room].scores)) {
-            rooms[data.room].scores[player].totalScore = gameMode;
+            rooms[data.room].scores[player].totalScore = parseInt(gameMode);
         }
     }
+    rooms[data.room].gameStarted = true;
     io.to(data.room).emit('gameStarted', { roomId: data.room, room: rooms[data.room] });
 }
 
@@ -57,10 +69,16 @@ function submitScore(io, data) {
         rooms[data.room].scores[data.player].totalScore -= scored
     }
     if (rooms[data.room].scores[data.player].totalScore == 0) {
-        io.to(data.room).emit('gameFinished', { room: rooms[data.room], winner: data.player });
+        //TODO: saveGame for players with id
+        games.saveGame(rooms[data.room])
+        io.to(data.room).emit('gameFinished', { scores: rooms[data.room].scores, winner: data.player });
     }
     else {
-        io.to(data.room).emit('scoreSubmitted', { scores: rooms[data.room].scores, });
+        let newTurn = rooms[data.room].turn + 1;
+        newTurn = newTurn > Object.keys(rooms[data.room].scores).length ? 1 : newTurn;
+        rooms[data.room].turn = newTurn;
+        console.log('new turn: ', newTurn)
+        io.to(data.room).emit('scoreSubmitted', { scores: rooms[data.room].scores, turn: newTurn });
     }
 }
 
@@ -100,4 +118,4 @@ function parseScore(score) {
     return total;
 }
 
-module.exports = { joinRoom, disconnect, startGame, submitScore, leaveRoom };
+module.exports = { joinRoom, disconnect, startGame, submitScore, leaveRoom, spectateRoom, hasGameStarted };

@@ -12,64 +12,46 @@ async function getUserGames(req, res) {
         throw error;
     }
 }
-//TODO: CHECK SI ESTO FUNCA
-async function addGame(req, res, next) {
+
+async function saveGame(game) {
+    const scores = game.scores;
+    const status = game.status ? 1 : 0;
+    const gameMode = game.gamemode;
+    const dateOptions = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+    }
+    const loggedPlayers = Object.keys(scores).filter(player => scores[player].id);
+    if (loggedPlayers.length < 1) return;
+    const name = 'Partida ' + gameMode + ' ' + new Date().toLocaleString('es-ES', dateOptions);
+    const insertGameQuery = 'INSERT INTO games (name, gamemode, scores, hasended) VALUES (?, ?, ?, ?)';
+    const insertGameUserQuery = 'INSERT INTO `games-users` (gameid, userid) VALUES (?, ?)';
     try {
-        const playersList = req.body.playersList;
-        const gameMode = req.body.gameMode;
-        const gameName = req.body.gameName;
-        const hasEnded = false;
-        const scores = {};
-        for (let player in playersList) {
-            scores[player] = { id: playersList[player].id, name: playersList[player].name, score: [] }
+        const gameData = await db.query(insertGameQuery, [name, gameMode, JSON.stringify(scores), status]);
+        const gameId = gameData.insertId;
+        for (let player of loggedPlayers) {
+            await db.query(insertGameUserQuery, [gameId, scores[player].id]);
         }
-
-        const insertGameQuery = 'INSERT INTO games (`gamemode`, `name`, `scores`, `hasended`) VALUES (?, ?, ?, ?)';
-        const game = await db.query(insertGameQuery, [gameMode, gameName, JSON.stringify(scores), hasEnded]);
-        if (!game) throw new Error('Error al crear la partida');
-
-        const gameId = game.insertId;
-        const insertGameUserQuery = 'INSERT INTO `games-users` (`gameid`, `userid`) VALUES (?, ?)';
-        for (let player of playersList) {
-            if (player.id != null) {
-                const gameUser = await db.query(insertGameUserQuery, [gameId, player.id]);
-                if (!gameUser) throw new Error('Error al añadir usuario a la partida');
-            }
-        }
-
-        next(gameId);
-    } catch (error) {
-        res.status(500).send({ message: error.message });
-        throw error;
+    } catch (e) {
+        console.log(e);
     }
 }
 
 async function loadGame(req, res) {
     let gameId = req.params.id;
     const getGameQuery = 'SELECT * FROM games WHERE id = ?';
-    const game = await db.query(getGameQuery, [gameId]);
-    const gameData = game[0];
-    if (!game) res.status(500).send({ message: 'Error al cargar la partida' });
-    else res.status(200).send({ gameData });
-}
-
-async function saveGame(req, res) {
     try {
-        const gameId = req.params.id; // Obtén el ID de la partida desde los parámetros de la ruta
-        const fileName = gameId + '.txt';
-
-        // Lee el contenido del archivo txt correspondiente al gameId
-        const fileData = await fs.readFile(fileName, 'utf-8');
-        const scores = JSON.parse(fileData);
-
-        // Actualiza los datos de la partida en la base de datos si es necesario
-        // Implementa la lógica de actualización según tus necesidades
-
-        res.status(200).send({ scores });
-    } catch (error) {
-        res.status(500).send({ message: error.message });
-        throw error;
+        const game = await db.query(getGameQuery, [gameId]);
+        const gameData = game[0];
+        res.status(200).send({ gameData });
+    }
+    catch (e) {
+        res.status(500).send({ message: 'Error al cargar la partida' });
     }
 }
 
-module.exports = { getUserGames, addGame, saveGame, loadGame };
+module.exports = { getUserGames, loadGame, saveGame };

@@ -27,13 +27,14 @@ app.get('/api/users/profile', auth.verifyToken, users.getProfile);
 
 //game routes
 app.get('/api/games/usergames', auth.verifyToken, games.getUserGames);
-app.post('/api/games/new', games.addGame);
 app.get('/api/games/:id', games.loadGame);
+app.get('/api/games/started/:id', gamesEvents.hasGameStarted);
 
 io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);
     socket.on('disconnect', gamesEvents.disconnect);
     socket.on('joinRoom', (data) => gamesEvents.joinRoom(io, socket, data));
+    socket.on('spectateRoom', (data) => gamesEvents.spectateRoom(io, socket, data));
     socket.on('startGame', (data) => gamesEvents.startGame(io, data));
     socket.on('submitScore', (data) => gamesEvents.submitScore(io, data));
     socket.on('leaveRoom', (data) => gamesEvents.leaveRoom(io, socket, data));
