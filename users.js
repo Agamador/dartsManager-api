@@ -60,21 +60,39 @@ async function login(req, res) {
 
 async function modifyProfile(req, res) {
     try {
+        console.log(req.body.newData)
         const userId = req.body.user.id;
         if (!userId || !req.body.newData) throw new Error('User or new info not provided');
-        const { newName, newSurname } = req.body.newData;
-        const updateQuery = 'UPDATE users SET name = ?, surname = ? WHERE id = ?';
-        await db.query(updateQuery, [newName, newSurname, userId]);
+        const { name, surname, email } = req.body.newData;
+        const updateQuery = 'UPDATE users SET name = ?, surname = ?, email = ? WHERE id = ?';
+        await db.query(updateQuery, [name, surname, email, userId]);
 
-        const newToken = createToken({ id: userId, name: newName })
+        const newToken = createToken({ id: userId, name: name })
         if (!newToken) {
             throw new Error('Error creating token');
         }
-        res.status(200).send({ user: { userId, "name": newName }, token: newToken });
+        res.status(200).send({ user: { userId, "name": name }, token: newToken });
     } catch (error) {
         res.status(500).send({ message: error.message });
         throw error;
     }
 }
 
-module.exports = { registerUser, login, modifyProfile };
+async function getProfile(req, res) {
+    console.log(req.body.user)
+    try {
+        const userId = req.body.user.id;
+        if (!userId) throw new Error('User not provided');
+        const user = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+
+        if (user.length === 0) {
+            throw new Error('Invalid credentials');
+        }
+
+        res.status(200).send({ user: { email: user[0].email, name: user[0].name, surname: user[0].surname } });
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+}
+
+module.exports = { registerUser, login, modifyProfile, getProfile };

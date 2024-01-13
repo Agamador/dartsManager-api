@@ -23,11 +23,12 @@ app.use(cors());
 app.post('/api/users/register', users.registerUser);
 app.post('/api/users/login', users.login);
 app.post('/api/users/edit', auth.verifyToken, users.modifyProfile);
+app.get('/api/users/profile', auth.verifyToken, users.getProfile);
 
 //game routes
 app.get('/api/games/usergames', auth.verifyToken, games.getUserGames);
 app.post('/api/games/new', games.addGame);
-
+app.get('/api/games/:id', games.loadGame);
 
 io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);

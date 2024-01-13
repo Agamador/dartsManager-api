@@ -21,14 +21,12 @@ function verifyToken(req, res, next) {
     if (!token) {
         return res.status(401).json({ message: 'Token not provided' });
     }
+    console.log('verifying')
     jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
             return res.status(401).json({ message: 'Invalid token' });
         }
-
-        if (req.body.user.id != decoded.user.id && req.body.user.name != decoded.user.name) {
-            return res.status(401).json({ message: 'Invalid user' });
-        }
+        req.body.user = decoded.user;
         next();
     });
 }

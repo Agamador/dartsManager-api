@@ -10,41 +10,94 @@ function disconnect() {
 
 function joinRoom(io, socket, data) {
     socket.join(data.room);
-    if (!rooms[data.room]) rooms[data.room] = { gamemode: data?.gamemode, scores: { [data.user]: { id: data?.userId, score: [] } } }
-    else rooms[data.room].scores[data.user] = { id: data?.userId, score: [] };
+    console.log('joined room: ', data)
+    if (!rooms[data.room]) rooms[data.room] = { scores: { [data.user]: { id: data?.userId, score: [], totalScore: 0, position: 1 } } }
+    else if (!rooms[data.room].scores[data.user]) rooms[data.room].scores[data.user] = { id: data?.userId, score: [], totalScore: 0, position: Object.keys(rooms[data.room].scores).length + 1 };
     console.log(rooms[data.room])
     io.in(data.room).emit('userJoined', rooms[data.room]);
 }
 
 function leaveRoom(io, socket, data) {
-    socket.leave(data.room);
     if (!rooms[data.room]) return;
-    delete rooms[data.room].scores[data.user];
-    if (rooms[data.room].scores.length != 0)
+    let deletedPosition = rooms[data.room].scores[data.userName].position;
+    delete rooms[data.room].scores[data.userName];
+    for (let player in rooms[data.room].scores) {
+        if (rooms[data.room].scores[player].position > deletedPosition) {
+            rooms[data.room].scores[player].position--;
+        }
+    }
+    if (Object.keys(rooms[data.room].scores).length != 0)
         io.to(data.room).emit('userLeft', rooms[data.room]);
-    else delete rooms[data.room];
-
+    else {
+        delete rooms[data.room];
+        socket.leave(data.room);
+    }
+    console.log('deleted player in: ', rooms[data.room])
 }
 
 function startGame(io, data) {
+    console.log('game started: ', data, rooms[data.room].scores, Object.keys(rooms[data.room].scores))
+    let gameMode = data.gamemode;
+    rooms[data.room].gamemode = gameMode;
+    if (gameMode === '301' || gameMode === '501') {
+        for (let player of Object.keys(rooms[data.room].scores)) {
+            rooms[data.room].scores[player].totalScore = gameMode;
+        }
+    }
     io.to(data.room).emit('gameStarted', { roomId: data.room, room: rooms[data.room] });
 }
 
 function submitScore(io, data) {
-    const lobby = rooms[data.room];
-    console.log(lobby, data)
-    if (!lobby) return;
-
-    lobby.scores[data.user].score.push(data.newScore);
-    io.to(data.room).emit('scoreSubmitted', rooms[data.room]);
-    //TODO: Check if the game has ended
-    gameFinished(io, { room: data.room, lobby });
+    console.log(rooms[data.room], data)
+    if (!rooms[data.room]) return;
+    rooms[data.room].scores[data.player].score.push(data.newScore);
+    let scored = parseScore(data.newScore);
+    let previousScore = rooms[data.room].scores[data.player].totalScore;
+    if (previousScore - scored >= 0) {
+        rooms[data.room].scores[data.player].totalScore -= scored
+    }
+    if (rooms[data.room].scores[data.player].totalScore == 0) {
+        io.to(data.room).emit('gameFinished', { room: rooms[data.room], winner: data.player });
+    }
+    else {
+        io.to(data.room).emit('scoreSubmitted', { scores: rooms[data.room].scores, });
+    }
 }
 
-//TODO: Send winner along with the room
-function gameFinished(io, data) {
-    io.to(data.room).emit('gameFinished', rooms[data.room]);
-}
 
+function parseScore(score) {
+    let total = 0;
+    let multiplier = 1;
+
+    for (let i = 0; i < score.length; i++) {
+        const current = score[i];
+        if (current[0] === 'T') {
+            const value = parseInt(current.slice(1));
+            if (!isNaN(value)) {
+                total += value * 3;
+            }
+        } else if (current[0] === 'D') {
+            if (current.slice(1) == 'B') total += 50;
+            else {
+                const value = parseInt(current.slice(1));
+                if (!isNaN(value)) {
+                    total += value * 2;
+                }
+            }
+        } else if (current === 'B') {
+            total += 25 * multiplier;
+            multiplier = 1;
+        } else if (current === 'X') {
+            total += 0;
+            multiplier = 1;
+        } else {
+            const value = parseInt(current);
+            if (!isNaN(value)) {
+                total += value * multiplier;
+            }
+        }
+    }
+    return total;
+}
 
 module.exports = { joinRoom, disconnect, startGame, submitScore, leaveRoom };

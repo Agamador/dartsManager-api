@@ -5,14 +5,14 @@ const db = require('./db');
 
 async function getUserGames(req, res) {
     try {
-        const games = await db.query('SELECT * FROM games WHERE id IN (SELECT gameid FROM `games-users` WHERE userid = ?)', [req.body.user.id]);
+        const games = await db.query('SELECT id, name FROM games WHERE id IN (SELECT gameid FROM `games-users` WHERE userid = ?)', [req.body.user.id]);
         res.status(200).send({ games });
     } catch (error) {
         res.status(500).send({ message: error.message });
         throw error;
     }
 }
-
+//TODO: CHECK SI ESTO FUNCA
 async function addGame(req, res, next) {
     try {
         const playersList = req.body.playersList;
@@ -45,7 +45,12 @@ async function addGame(req, res, next) {
 }
 
 async function loadGame(req, res) {
-
+    let gameId = req.params.id;
+    const getGameQuery = 'SELECT * FROM games WHERE id = ?';
+    const game = await db.query(getGameQuery, [gameId]);
+    const gameData = game[0];
+    if (!game) res.status(500).send({ message: 'Error al cargar la partida' });
+    else res.status(200).send({ gameData });
 }
 
 async function saveGame(req, res) {
@@ -67,4 +72,4 @@ async function saveGame(req, res) {
     }
 }
 
-module.exports = { getUserGames, addGame, saveGame };
+module.exports = { getUserGames, addGame, saveGame, loadGame };
