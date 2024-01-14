@@ -11,10 +11,12 @@ function disconnect() {
 function joinRoom(io, socket, data) {
     socket.join(data.room);
     console.log('joined room: ', data)
-    if (!rooms[data.room]) rooms[data.room] = { scores: { [data.user]: { id: data?.userId, score: [], totalScore: 0, position: 1 } }, turn: 1, gameStarted: false }
-    else if (!rooms[data.room].scores[data.user]) rooms[data.room].scores[data.user] = { id: data?.userId, score: [], totalScore: 0, position: Object.keys(rooms[data.room].scores).length + 1 };
-    console.log(rooms[data.room])
-    io.in(data.room).emit('userJoined', rooms[data.room]);
+    if (data.user != '' && data.user != null) {
+        if (!rooms[data.room]) rooms[data.room] = { scores: { [data.user]: { id: data?.userId, score: [], totalScore: 0, position: 1 } }, turn: 1, gameStarted: false }
+        else if (!rooms[data.room].scores[data.user]) rooms[data.room].scores[data.user] = { id: data?.userId, score: [], totalScore: 0, position: Object.keys(rooms[data.room].scores).length + 1 };
+        console.log(rooms[data.room])
+        io.in(data.room).emit('userJoined', rooms[data.room]);
+    }
 }
 
 function spectateRoom(io, socket, data) {
