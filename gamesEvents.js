@@ -69,7 +69,6 @@ function submitScore(io, data) {
         rooms[data.room].scores[data.player].totalScore -= scored
     }
     if (rooms[data.room].scores[data.player].totalScore == 0) {
-        //TODO: saveGame for players with id
         games.saveGame(rooms[data.room])
         io.to(data.room).emit('gameFinished', { scores: rooms[data.room].scores, winner: data.player });
     }

@@ -8,7 +8,15 @@ const games = require('./games.js');
 const gamesEvents = require('./gamesEvents.js');
 const app = express();
 const cors = require('cors');
-const server = require('http').createServer(app);
+const fs = require('fs'); // Agregamos fs para leer archivos
+const https = require('https'); // Agregamos https
+
+const privateKey = fs.readFileSync('/furanet/sites/dartsmanager.agamador.com/web/certs/dartsmanager.agamador.com/privkey.pem'); // Reemplaza con la ruta a tu clave privada
+const certificate = fs.readFileSync('/furanet/sites/dartsmanager.agamador.com/web/certs/dartsmanager.agamador.com/fullchain.pem'); // Reemplaza con la ruta a tu certificado SSL
+const credentials = { key: privateKey, cert: certificate };
+
+const server = https.createServer(credentials, app); // Usamos https.createServer
+
 const io = require('socket.io')(server, {
     cors: {
         origin: '*',
@@ -41,7 +49,7 @@ io.on('connection', (socket) => {
 });
 
 
-const port = 3000;
+const port = 3000; // Puerto HTTPS estándar
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
