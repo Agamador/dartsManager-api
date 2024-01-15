@@ -60,7 +60,6 @@ async function login(req, res) {
 
 async function modifyProfile(req, res) {
     try {
-        console.log(req.body.newData)
         const userId = req.body.user.id;
         if (!userId || !req.body.newData) throw new Error('User or new info not provided');
         const { name, surname, email } = req.body.newData;
@@ -79,7 +78,6 @@ async function modifyProfile(req, res) {
 }
 
 async function getProfile(req, res) {
-    console.log(req.body.user)
     try {
         const userId = req.body.user.id;
         if (!userId) throw new Error('User not provided');
